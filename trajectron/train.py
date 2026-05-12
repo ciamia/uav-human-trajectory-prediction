@@ -35,7 +35,8 @@ if args.eval_device is None:
     args.eval_device = torch.device('cpu')
 
 # This is needed for memory pinning using a DataLoader (otherwise memory is pinned to cuda:0 by default)
-torch.cuda.set_device(args.device)
+if args.device.type == 'cuda':
+    torch.cuda.set_device(args.device)
 
 if args.seed is not None:
     random.seed(args.seed)
@@ -212,6 +213,18 @@ def main():
 
     trajectron.set_environment(train_env)
     trajectron.set_annealing_params()
+
+    if args.checkpoint is not None:
+        cp_epoch = args.checkpoint_epoch
+        if cp_epoch is None:
+            pts = [f for f in os.listdir(args.checkpoint) if f.startswith('model_registrar-') and f.endswith('.pt')]
+            cp_epoch = max(int(f.split('-')[1].split('.')[0]) for f in pts)
+        cp_path = os.path.join(args.checkpoint, 'model_registrar-%d.pt' % cp_epoch)
+        print(f'\n*** Fine-tuning: loading checkpoint from {cp_path} ***')
+        checkpoint_state = torch.load(cp_path, map_location=args.device)
+        model_registrar.model_dict.load_state_dict(checkpoint_state.state_dict())
+        print(f'*** Loaded pre-trained weights (epoch {cp_epoch}) ***\n')
+
     print('Created Training Model.')
 
     eval_trajectron = None

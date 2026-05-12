@@ -169,4 +169,16 @@ parser.add_argument('--save_every',
                     help='how often to save during training, never if None',
                     type=int,
                     default=1)
+
+# Fine-tuning / Transfer Learning
+parser.add_argument('--checkpoint',
+                    help='path to a pre-trained model directory for fine-tuning (e.g. models/eth_model)',
+                    type=str,
+                    default=None)
+
+parser.add_argument('--checkpoint_epoch',
+                    help='which epoch checkpoint to load (e.g. 3 loads model_registrar-3.pt)',
+                    type=int,
+                    default=None)
+
 args = parser.parse_args()

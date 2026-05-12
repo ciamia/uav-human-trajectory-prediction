@@ -409,3 +409,40 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# ============================================================
+# Thesis-specific ignores
+# ============================================================
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Raw / processed video files (kept locally, too large for git)
+*.mp4
+*.MOV
+*.mov
+*.avi
+*.mkv
+
+# YOLO weights (re-download via ultralytics)
+*.pt
+
+# Large trained-model checkpoints — keep configs and small ETH ones, ignore the rest
+experiments/pedestrians/models/models_*_uav_*/
+experiments/pedestrians/models/models_*_eth_100ep/
+
+# Raw collected datasets (kept on local disk and external storage)
+raw_videos/
+raw_videos_calibration/
+calibration_output*/
+processed/
+
+# Local results that re-generate from notebooks
+experiments/pedestrians/results/*.csv
+experiments/pedestrians/results/*.png
+results/
+
+# Notebook execution copies / scratch
+*-Copy*.ipynb
+*_executed.ipynb
+
