@@ -71,7 +71,7 @@ A separate **hand-gesture module** (MediaPipe Hands + classifier) runs in parall
 | Trajectory ranking (likelihood, KDE, mean-prox, endpoint, history-consistency, risk) | done | `prediction_ranking*.ipynb` |
 | Homography-based ground-truth calibration | done as **proof-of-concept** | `calibration_demo.ipynb` (lives in `uav_perception/`) |
 | **VIO-based ground-truth (ARKit / CamTrackAR)** | in progress | see [`docs/VIO_RESEARCH.md`](docs/VIO_RESEARCH.md) |
-| Hand-gesture module | planned | separate module, MediaPipe → classifier |
+| Hand-gesture module | planned, design done | separate module, MediaPipe Hands → 1D CNN / ST-GCN. Full plan in [`docs/GESTURE_MODULE.md`](docs/GESTURE_MODULE.md) |
 | UAV deployment | future | not in scope of this thesis |
 
 For a detailed breakdown of what was done when and why, see [`docs/PROGRESS.md`](docs/PROGRESS.md).
@@ -82,6 +82,7 @@ For a detailed breakdown of what was done when and why, see [`docs/PROGRESS.md`]
 
 - [`docs/NOTEBOOKS_GUIDE.md`](docs/NOTEBOOKS_GUIDE.md) — **Start here.** Short narrative for each experiment notebook: question → method → result → why we moved on.
 - [`docs/VIO_RESEARCH.md`](docs/VIO_RESEARCH.md) — Why VIO, how ARKit works, validation plan.
+- [`docs/GESTURE_MODULE.md`](docs/GESTURE_MODULE.md) — Plan for the separate hand-gesture / intent module (MediaPipe Hands + classifier).
 - [`docs/PIPELINE.md`](docs/PIPELINE.md) — Module-by-module architecture and data flow.
 - [`docs/PROGRESS.md`](docs/PROGRESS.md) — Timeline of decisions and experiments.
 
@@ -123,6 +124,7 @@ Auxiliary notebooks (analysis, ablations):
 ├── docs/
 │   ├── NOTEBOOKS_GUIDE.md          # short narrative for each notebook (read first)
 │   ├── VIO_RESEARCH.md             # why VIO, theory, validation plan
+│   ├── GESTURE_MODULE.md           # plan for hand-gesture / intent module
 │   ├── PIPELINE.md                 # module architecture
 │   └── PROGRESS.md                 # timeline of decisions
 ├── prediction_ranking*.ipynb       # ranking experiments (root-level)

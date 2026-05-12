@@ -23,7 +23,7 @@ Running log of what was done, when, and why. Most recent at the top.
 2. Implement `pixel_to_world_floor()` and run it on that clip.
 3. Compare resulting world trajectories with the previous homography output, side-by-side.
 4. Add a "VIO" section to `calibration_demo.ipynb`.
-5. Start Module D (hand gesture) — at minimum, get MediaPipe Hands running on one of the existing 26 videos as a sanity check.
+5. Start the gesture module (Module D) — design document already written, see [`GESTURE_MODULE.md`](GESTURE_MODULE.md). First concrete step: MediaPipe Hands sanity check on the existing 26 videos.
 
 ---
 

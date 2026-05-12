@@ -132,8 +132,8 @@ See `TRAJECTRON_UPSTREAM_README.md` for the exact `train.py` invocation. Custom 
 
 ## Module D — Hand-gesture intent (planned, separate)
 
-**Input:** RGB video (same camera).
-**Output:** for each frame and each detected person, a discrete gesture / intent label.
+**Input:** RGB video (same camera) + the YOLO boxes from Module A.
+**Output:** for each frame and each detected person, a discrete gesture / intent label with confidence.
 
 ### Why separate
 
@@ -145,12 +145,15 @@ Advisor feedback (2026-05): keeping hand tracking and trajectory forecasting in 
 
 ### Sketch of pipeline
 
-1. **MediaPipe Hands** — detect 21 3-D keypoints per hand, every frame.
-2. Buffer the last `N` frames (~1 s window).
-3. **Classifier** (small Transformer or ST-GCN) → gesture label `{stop, point-left, point-right, wave, none}`.
-4. Publish the label to the planner alongside the trajectory predictions.
+1. Crop each YOLO box → small per-person image stream.
+2. **MediaPipe Hands** — detect 21 3-D keypoints per hand, every frame.
+3. Buffer the last `N ≈ 30` frames (~1 s window) of keypoints.
+4. **Classifier** (1D CNN baseline, ST-GCN upgrade path) → gesture label `{stop, follow_me, go_away, point_left, point_right, wave, none}`.
+5. Publish `(person_id, intent_label, confidence)` to the planner alongside the trajectory predictions.
 
-This module is *planned*, not yet implemented. First step: choose a public dataset (e.g. **SHREC**, **DHG-14/28**) for the classifier.
+**Full planning document:** [`GESTURE_MODULE.md`](GESTURE_MODULE.md) — covers the label set, candidate datasets (20BN-Jester, SHREC, DHG-14/28, IPN Hand), classifier architecture, 5-phase implementation plan, and integration with the trajectory module.
+
+This module is *planned*, not yet implemented. The first phase (MediaPipe Hands sanity check on existing thesis videos) takes one day and is the next thing to do after the VIO pilot.
 
 ---
 
