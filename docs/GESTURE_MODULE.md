@@ -1,6 +1,6 @@
 # Hand-gesture / intent module (planned)
 
-This module is **separate** from the trajectory forecasting module. The advisor's guidance (May 2026) was that *hand tracking* and *trajectory prediction* should be two independent components that share only a common world frame — they should not be combined in a single end-to-end model.
+This module is **separate** from the trajectory forecasting module. It was decided that *hand tracking* and *trajectory prediction* should be two independent components.
 
 This document describes the planned design, datasets, and implementation phases. The actual code lives under `gesture/` (to be added).
 
