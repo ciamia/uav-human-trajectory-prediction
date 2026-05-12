@@ -1,6 +1,6 @@
 # Human-Safety-Aware Trajectory Planning for UAVs
 
-Master thesis project on **predicting human trajectories** for **UAV safety**, with reliable ground-truth acquisition via **Visual-Inertial Odometry (VIO)**.
+Semester thesis project on predicting human trajectories for UAV safety.
 
 > Built on top of [Trajectron++](https://github.com/StanfordASL/Trajectron-plus-plus) (Salzmann et al., ECCV 2020). The original upstream README is preserved at [`TRAJECTRON_UPSTREAM_README.md`](./TRAJECTRON_UPSTREAM_README.md).
 
@@ -8,13 +8,13 @@ Master thesis project on **predicting human trajectories** for **UAV safety**, w
 
 ## Goal
 
-A UAV that flies near humans needs to **predict where people will be in 1–3 seconds** so it can plan a safe path. This project builds an end-to-end pipeline:
+A UAV that flies near humans needs to predict where people will be, so it can plan a safe path. This project builds an end-to-end pipeline:
 
 1. **Perception** — detect humans in the UAV camera feed
 2. **Ground truth** — convert pixel detections to metric world coordinates (VIO)
 3. **Forecasting** — predict future trajectories (Trajectron++ fine-tuned on collected data)
 4. **Hand-gesture intent** (separate module) — interpret pedestrian intent from hand motion
-5. **Trajectory ranking** — pick the safest / most likely prediction for the UAV's planner
+5. **Trajectory Planning** 
 
 ---
 
@@ -31,7 +31,7 @@ A UAV that flies near humans needs to **predict where people will be in 1–3 se
 ┌────────────────────┐     ┌──────────────────┐
 │   YOLOv8           │     │   ARKit (VIO)    │
 │   person detection │     │   camera 6-DoF   │
-│   → foot pixels    │     │   pose per frame │
+│   → foot pixels    │     │   pose per frame (on - trial for gt) │
 └─────────┬──────────┘     └─────────┬────────┘
           │                          │
           └─────────┬────────────────┘
