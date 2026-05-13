@@ -147,8 +147,4 @@ If you use this work, please also cite the original Trajectron++ paper:
 }
 ```
 
----
 
-## Author
-
-Master thesis, 2026. Contact: see institute page.
