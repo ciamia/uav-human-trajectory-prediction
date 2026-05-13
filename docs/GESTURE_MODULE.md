@@ -14,7 +14,7 @@ Three reasons:
 2. **Reusability.** The gesture module can be swapped, retrained, or replaced with off-the-shelf models without re-training Trajectron++.
 3. **Practical engineering.** This matches how production robot stacks are built (ROS-style: each capability is a node that publishes to a shared world model).
 
-The two modules communicate via a shared world frame (provided by the VIO module, see [`VIO_RESEARCH.md`](VIO_RESEARCH.md)). The trajectory module publishes `(person_id, future_trajectory)`; the gesture module publishes `(person_id, intent_label, confidence)`. A downstream planner combines both.
+
 
 ---
 
@@ -68,23 +68,6 @@ Several architectures fit, ranked by complexity:
 
 **Plan:** start with a 1D CNN baseline, upgrade to ST-GCN if accuracy is insufficient.
 
-### 3.4 Output schema
-
-Per frame `t`, per person `id`, the module emits:
-
-```json
-{
-  "person_id": 3,
-  "world_position": [x_m, z_m],
-  "intent": "point_left",
-  "confidence": 0.87,
-  "raw_logits": {"stop": 0.02, "follow_me": 0.04, "go_away": 0.03,
-                 "point_left": 0.87, "point_right": 0.01, "wave": 0.01,
-                 "none": 0.02}
-}
-```
-
-This is the **only** thing the trajectory / planner module needs to consume. Implementation details (which model, which dataset) stay internal to the gesture module.
 
 ---
 
@@ -102,31 +85,26 @@ The training data must be **video clips of people doing the target gestures**. T
 | **IPN Hand** | ~4 k clips, 13 classes | "human–computer interaction" gestures | research-only | naturalistic |
 | **ChaLearn IsoGD** | ~47 k RGB-D videos | 249 gestures | research-only | huge, but classes are micro-gestures |
 
-Strategy: pre-train a 27-class classifier on **20BN-Jester**, fine-tune on a small custom dataset with the 6 – 7 UAV-relevant labels above.
 
-### 4.2 Custom small dataset (only as needed)
+----------
 
-If the public-pre-trained model doesn't generalise to our scenario (different distance, lighting, framing), record a **small** custom set:
+Dataset Samples Classes Subjects Scenes Resolution Annotations Annotation Method
+LaRED, 2014 [13] 243,000 81 10 10 640 × 480 masks automatically
+OUHANDS, 2016 [22] 3,000 10 23 various 640 × 480 masks, boxes automatically
+HANDS, 2021 [25] 12,000 29 5 5 960 × 540 boxes –
+SHAPE, 2022 [2] 33,471 32 20 various 4128 × 3096 masks, boxes manually
+HaGRID, 2023 554,800 18 + 1 37,583 ⩾ 37,583 1920 × 1080 boxes manually
 
-- 3 – 5 subjects (us + lab members)
-- ~20 repetitions per gesture
-- Two camera angles (eye-level + slight high angle, simulating a low UAV altitude)
-- Same recording setup as the trajectory data so the modules are inter-operable
 
-That's ~500 – 1000 clips, recordable in a single afternoon.
+
 
 ---
 
 ## 5. Integration with the trajectory module
 
 ```
-        ┌──────────────────────────┐
-        │ Shared world frame       │
-        │ (VIO module — Y = 0      │
-        │  is the ground plane)    │
-        └────────────┬─────────────┘
-                     │
-       ┌─────────────┴─────────────┐
+        
+       ┌─────────────--────────────┐
        │                           │
        ▼                           ▼
 ┌──────────────┐            ┌──────────────┐
@@ -148,78 +126,13 @@ That's ~500 – 1000 clips, recordable in a single afternoon.
             ┌─────────────────┐
             │ Planner / safety│
             │ layer           │
-            │ (out of scope   │
-            │  for thesis)    │
+                 │
             └─────────────────┘
 ```
 
-Key design choice: **the gesture module reuses the YOLO bounding boxes from the trajectory module**, so there is no extra per-frame detection cost. Each YOLO box is cropped, MediaPipe Hands is run on the crop, and the resulting keypoints are matched to the person via their bounding-box ID.
 
-This keeps the modules independent in terms of code, but cheap in terms of compute (one YOLO pass per frame).
 
----
 
-## 6. Implementation phases
-
-A realistic order of milestones. Each phase produces a runnable artefact, even if the next phase isn't done yet.
-
-### Phase 1 — Sanity check (1 day)
-
-- Install `mediapipe`, run it on one of the existing 26 thesis videos.
-- Confirm keypoints are detected on the walking person.
-- Plot the keypoints overlaid on the video frame.
-- **Output:** `notebooks/04_mediapipe_sanity.ipynb`.
-
-### Phase 2 — Public-dataset baseline (3 – 5 days)
-
-- Download 20BN-Jester subset (the full set is ~22 GB; a 5 – 10 class subset is enough).
-- Train a 1D CNN on the keypoint sequences (MediaPipe Hands on each frame → 21 × 3 × T tensor).
-- Report top-1 / top-3 accuracy.
-- **Output:** `notebooks/05_gesture_baseline.ipynb`, `gesture/train_baseline.py`, a checkpoint.
-
-### Phase 3 — UAV-relevant label set (3 – 5 days)
-
-- Define the final UAV gesture vocabulary (the 6 – 7 labels in Section 2).
-- Either (a) re-map Jester labels (e.g. "Thumb Up" → `none`, "Pushing Hand Away" → `go_away`) or (b) collect a small custom dataset as in Section 4.2.
-- Fine-tune the Phase-2 model on the new labels.
-- **Output:** confusion matrix, per-class precision / recall.
-
-### Phase 4 — Integration with VIO + Trajectron++ (2 – 3 days)
-
-- Wire the gesture module into the same processing loop as the trajectory module.
-- Both modules read the same YOLO output and the same VIO pose.
-- Both modules write to a single JSON-lines log file per video.
-- **Output:** `notebooks/06_integrated_pipeline.ipynb` — one notebook running everything end-to-end on a single field recording.
-
-### Phase 5 — Evaluation (1 – 2 days)
-
-- Quantitative: confusion matrix on a held-out test split.
-- Qualitative: side-by-side video — left half shows trajectory predictions, right half shows detected gestures as text overlays.
-- **Output:** plots + a short evaluation video for the next advisor meeting.
-
-Total estimated effort: **~2 – 3 weeks**, parallelisable with the VIO data collection. The first phase is one day of work and is the right thing to do *next week*, after the VIO pilot.
 
 ---
 
-## 7. Open design choices
-
-The following decisions are **deliberately deferred** until we have first results from Phase 1:
-
-- Whether to keep **MediaPipe Hands** (21 keypoints per hand) or move to **MediaPipe Holistic** (face + pose + hands). Holistic is heavier but might be needed if "pointing" gestures only become reliable with elbow orientation.
-- Whether the classifier outputs a single label per frame or a label per *gesture instance* (segmentation in time). The latter is harder but more useful for the planner.
-- Whether to also include **facial cues** (e.g. eye gaze direction). Doable with MediaPipe Face Mesh; useful for "is the person looking at the UAV?" but adds complexity. Probably out of scope for the thesis.
-
-These will be revisited at the end of Phase 2.
-
----
-
-## 8. What this gives the thesis
-
-Concretely, by the time of submission the thesis chapter on this module will contain:
-
-1. The architecture diagram in Section 5.
-2. A quantitative table: gesture classifier accuracy on a held-out set.
-3. An evaluation video showing the integrated pipeline (trajectory + gesture + VIO) running on a real field recording.
-4. A short comparison: planner decisions with vs. without the gesture module as auxiliary input. Even if a "decision" is a heuristic for now, showing that the gesture intent could plausibly change the chosen plan demonstrates the value of the module.
-
-This is *enough* for the thesis claim that the system can take human intent into account, without requiring a fully-deployed UAV.

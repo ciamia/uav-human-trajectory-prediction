@@ -8,7 +8,7 @@ This document summarises the research and design decisions for transitioning fro
 
 ### 1.1 The original problem
 
-Trajectron++ predicts pedestrian positions in **metric world coordinates**. To train and evaluate it on our own UAV footage, we need each detected person's `(x, y)` in metres — i.e. a *metric ground truth*.
+Trajectron++ predicts pedestrian positions in **metric world coordinates**. To train and evaluate it on our own UAV footage, we need each detected person's `(x, y)` in metres, a metric ground truth.
 
 ### 1.2 First attempt — homography
 
@@ -18,15 +18,14 @@ For static iPhone footage of a sand volleyball court, a 4-point homography was c
 - 4 corresponding world-frame metres (`10.3 m × 20 m`, measured with a tape measure)
 - `cv2.findHomography` → 3 × 3 matrix
 
-This worked as a proof-of-concept (see `calibration_demo.ipynb`) and produced metric trajectories that gave **plausible** ADE / FDE numbers — especially after switching the projection point from the bounding-box centre to the **foot point** (bottom-centre).
+This worked as a proof-of-concept (see `calibration_demo.ipynb`) and produced metric trajectories that gave plausible ADE / FDE numbers — especially after switching the projection point from the bounding-box centre to the foot point (bottom-centre).
 
 ### 1.3 Why homography is not enough
 
-Advisor feedback after the demo (2026-05): the homography approach is **not reliable as a thesis-grade ground truth** because:
 
 | Issue | Reason |
 |---|---|
-| **Static camera only** | A homography is a single 3 × 3 matrix — valid only while the camera does not move. The moment the UAV moves, the mapping is invalid. |
+| **Static camera only** | A homography is a single 3 × 3 matrix — valid only while the camera does not move. |
 | **Manual annotation** | Four corners must be clicked by hand on every video. Small pixel errors propagate to large metric errors (perspective). |
 | **Requires a known planar region** | A volleyball court works; an arbitrary outdoor scene does not. |
 | **Distance / scale ambiguity** | A single camera cannot recover scale on its own. Homography "imports" the scale from the measured world corners — so its accuracy is bounded by the tape measure. |
@@ -146,48 +145,15 @@ Given a YOLO foot-pixel `(u, v)` at frame `t`, the corresponding camera pose `(C
 
 This calculation is per-frame, so it works equally well for static or moving cameras (UAV), as long as `(C_t, R_t)` is available — which VIO provides.
 
----
 
-## 5. Validation plan
 
-The thesis claim is: *VIO gives reliable metric ground truth for human trajectories.* To support this with evidence, the following experiments will be reported.
-
-### 5.1 In-room sanity checks (done)
-
-| Test | Procedure | Expected | Measured (2026-05) |
-|---|---|---|---|
-| Tape-measure walk | mark 1.72 m on the floor, set anchor at A, walk to B, set anchor | `‖B − A‖ ≈ 1.72 m` | `dz = 1.73 m` (0.6 % error) |
-| Lateral sway | observe `X` while walking straight | `< 20 cm` | ~60 cm (handheld; will drop with tripod) |
-| Vertical drift | `Y` while walking | `< 5 cm` | sub-cm |
-
-**Result:** ARKit gave 1.73 m for a 1.72 m walk — well inside published ARKit accuracy (~1 – 3 %).
-
-### 5.2 Field validation (planned, before next milestone)
-
-| Test | Procedure | Target |
-|---|---|---|
-| Static camera, known walk | Tripod-mount phone on sand court; subject walks marked 10 m line; compute trajectory length from VIO | error `< 5 %` of true distance |
-| Cross-video consistency | Same court, same setup, two separate recordings; align via two corner anchors; compare reported lengths | scale match within 2 % |
-| Comparison with homography | Same clip processed with (a) homography from `calibration_demo.ipynb` and (b) VIO pipeline | report side-by-side ADE / FDE on the same Trajectron++ model |
-
-### 5.3 What we are *not* claiming
-
-- We are not claiming sub-centimetre accuracy.
-- We are not claiming this generalises to large outdoor scenes without anchors.
-- We are not claiming the UAV deployment is solved — the thesis scope is the **data-collection and forecasting** side.
 
 ---
 
-## 6. Open questions / decisions still to make
-
-1. **Origin convention across recordings.** Each ARKit session has its own `(0, 0, 0)` at the device's initial pose. For multi-video analysis we will either (a) place a fixed-location physical marker and an anchor on it at every recording, or (b) post-process: align trajectories to court corners detected automatically in the first frame.
-2. **Tripod vs handheld.** Tripod is cleaner for static-camera UAV-simulation data, but the eventual UAV case is moving. A small set of handheld "moving camera" recordings should be added to demonstrate that the pipeline still works.
-3. **Drift over long recordings.** ARKit drifts noticeably after > 1 – 2 minutes of continuous tracking. For now, all recordings should stay under 60 s. If longer sequences are needed, consider **loop-closure anchors** every 30 s.
-4. **Alternative to CamTrackAR.** If app limitations become an issue (e.g. it disappears from the App Store, or stops exporting raw CSV), the fallback is to write a small SwiftUI iOS app using the public ARKit API directly. Estimated effort: 2 – 3 days.
 
 ---
 
-## 7. Next concrete steps
+Next concrete steps
 
 | # | Step | Output |
 |---|---|---|
@@ -196,6 +162,6 @@ The thesis claim is: *VIO gives reliable metric ground truth for human trajector
 | 3 | Implement `pixel_to_world_floor(...)` and project frame-by-frame | `world_trajectory.csv` |
 | 4 | Plot the resulting trajectory; sanity-check length against in-court tape distance | matplotlib figure + length report |
 | 5 | Feed `world_trajectory.csv` into the v8 Trajectron++ model; compute ADE / FDE against the VIO ground truth | numbers + plots |
-| 6 | Add a section to `calibration_demo.ipynb` that puts homography and VIO side-by-side on the same clip | comparison cell |
+| 6 | Add a section to `calibration_demo.ipynb` |
 
-Once step 6 is finished, the result is a single notebook the advisor can run end-to-end. That is the artefact for the next meeting.
+

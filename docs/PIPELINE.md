@@ -1,21 +1,11 @@
 # Pipeline Architecture
 
-End-to-end data flow for the thesis, broken into independent modules. Following advisor feedback (2026-05), **hand tracking** and **trajectory forecasting** are two separate modules that share only a common world frame.
+End-to-end data flow, broken into independent modules. Hand tracking (gesture classifier) and trajectory forecasting are two separate modules.
 
----
-
-## High-level overview
 
 ```
-                                  ┌──────────────────────────┐
-                                  │   World frame (metres)   │
-                                  │   provided by VIO        │
-                                  └────────────┬─────────────┘
-                                               │
-                  ┌────────────────────────────┼────────────────────────────┐
-                  │                            │                            │
-                  ▼                            ▼                            ▼
-        ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+                                  
+        ┌──────────  ──────          ┌──────────────────┐         ┌──────────────────┐
         │  Module A        │         │  Module B        │         │  Module C        │
         │  Perception      │         │  Forecasting     │         │  Hand-gesture    │
         │  (per-person     │         │  (Trajectron++,  │         │  (MediaPipe +    │
@@ -23,7 +13,7 @@ End-to-end data flow for the thesis, broken into independent modules. Following 
         │                  │         │   samples)       │         │                  │
         └────────┬─────────┘         └────────┬─────────┘         └────────┬─────────┘
                  │                            │                            │
-                 │ metric trajectory          │ predicted trajectory       │ intent label
+                 │ metric trajectory          │ predicted trajectory                   │ intent label
                  │                            │                            │
                  └────────────┬───────────────┴───────────┬────────────────┘
                               │                           │
@@ -35,7 +25,7 @@ End-to-end data flow for the thesis, broken into independent modules. Following 
                        └──────────────────┘      └──────────────────┘
 ```
 
-The **dotted line below** is the data-collection path that produced today's results; the **solid path** is the eventual UAV deployment.
+
 
 ---
 
@@ -48,8 +38,8 @@ The **dotted line below** is the data-collection path that produced today's resu
 
 1. **YOLOv8s** (`yolov8s.pt`, COCO classes) on every frame; keep only `class == person`.
 2. **Foot point** = bottom-centre of the YOLO bounding box, **not** the centre — gives the contact point with the ground.
-3. **Tracking** by simple IoU + Hungarian assignment (this can be upgraded to a learned tracker later, e.g. BoT-SORT).
-4. **Outlier filter:** drop tracks shorter than 8 frames (less than one observation window for Trajectron++).
+3. **Tracking** by simple IoU + Hungarian assignment.
+4. Outlier filter.
 
 ### Key files
 
@@ -59,30 +49,21 @@ The **dotted line below** is the data-collection path that produced today's resu
 
 ### Known issues
 
-- Long-range detections drop out when the person is < ~30 px tall.
+- Long-range detections drop out.
 - A second person briefly entering the frame creates a phantom track in 2 – 3 of the 26 collected videos. Documented in `docs/PROGRESS.md`.
 
 ---
 
-## Module B — Ground truth (VIO)
+## Module B — Ground truth (VIO) Trial Right Now
 
 **Input:** RGB video + IMU stream (or the equivalent CamTrackAR export).
 **Output:** for every frame `t`, the camera pose `(C_t ∈ ℝ³, R_t ∈ SO(3))` in the world frame, plus a known ground plane `Y = 0`.
 
 ### Steps (current setup, iPhone + CamTrackAR)
 
-1. Record video with CamTrackAR — ARKit produces `CameraKeyframes.CSV`.
-2. Optionally place anchors at known physical reference points (court corners) for cross-video alignment.
-3. Save the export folder under `data/vio/<session_id>/`.
+Record video with CamTrackAR — ARKit produces `CameraKeyframes.CSV`.
 
-### Steps (future, on-board UAV)
 
-The same role can be filled by:
-
-- An on-board IMU + downward-facing camera running VINS-Mono or ORB-SLAM3.
-- DJI / PX4 VIO output, if the UAV exposes pose.
-
-The interface to Module C stays the same — `(C_t, R_t)` per frame.
 
 ### Ray-cast to ground
 
@@ -110,7 +91,7 @@ This gives the **metric `(x, z)`** position of the foot at every frame. Stacked 
 ## Module C — Forecasting (Trajectron++)
 
 **Input:** for each person, an 8-step history of `(x, y)` positions in metres (`Δt = 0.4 s` by default, i.e. 2.5 Hz observations covering ~3.2 s of history).
-**Output:** a GMM over 12 future steps (~4.8 s horizon), plus 20 sampled trajectories.
+**Output:** a GMM over future steps, plus 20 sampled trajectories.
 
 ### Current models
 
@@ -122,7 +103,7 @@ This gives the **metric `(x, z)`** position of the foot at every frame. Stacked 
 | `models_09_Mar_2026_16_10_23_uav_ft_v6_aug` | + data augmentation (flips, 90 / 270 rotations, gaussian noise) — current "good" model |
 | `models_10_Mar_2026_00_42_50_uav_ft_v8_persp` | + perspective-corrected ground truth (homography) |
 
-`v6` is the production model for evaluation. `v8` is the current "do better ground truth helps?" answer (yes, ADE / FDE improve modestly).
+`v6` is the production model for evaluation. `v8` is the current "do better ground truth helps?" answer (yes, ADE / FDE improve modestly). With the better achieved ground truth the model can be and should be trained with the collected data.
 
 ### Training command
 
@@ -137,23 +118,23 @@ See `TRAJECTRON_UPSTREAM_README.md` for the exact `train.py` invocation. Custom 
 
 ### Why separate
 
-Advisor feedback (2026-05): keeping hand tracking and trajectory forecasting in **separate modules** that share only the world frame:
+keeping hand tracking and trajectory forecasting in **separate modules**.
 
 - lets either module fail or be replaced without breaking the other,
 - matches how production robotic systems are structured,
 - removes the need to backpropagate through a large multi-modal joint model.
+-for now simpler.
 
 ### Sketch of pipeline
 
-1. Crop each YOLO box → small per-person image stream.
-2. **MediaPipe Hands** — detect 21 3-D keypoints per hand, every frame.
-3. Buffer the last `N ≈ 30` frames (~1 s window) of keypoints.
-4. **Classifier** (1D CNN baseline, ST-GCN upgrade path) → gesture label `{stop, follow_me, go_away, point_left, point_right, wave, none}`.
-5. Publish `(person_id, intent_label, confidence)` to the planner alongside the trajectory predictions.
+ **MediaPipe Hands** — detect 21 3-D keypoints per hand, every frame.
+ Buffer the last `N ≈ 30` frames (~1 s window) of keypoints.
+ **Classifier** → gesture label `{stop, follow_me, go_away, point_left, point_right, wave, none}`.
+ Publish `(person_id, intent_label, confidence)` to the planner alongside the trajectory predictions.
 
-**Full planning document:** [`GESTURE_MODULE.md`](GESTURE_MODULE.md) — covers the label set, candidate datasets (20BN-Jester, SHREC, DHG-14/28, IPN Hand), classifier architecture, 5-phase implementation plan, and integration with the trajectory module.
 
-This module is *planned*, not yet implemented. The first phase (MediaPipe Hands sanity check on existing thesis videos) takes one day and is the next thing to do after the VIO pilot.
+
+This module is *planned*, not yet implemented. Working on the MediaPipe phase yet.
 
 ---
 
@@ -190,12 +171,3 @@ foot_pixels.csv + CameraKeyframes.CSV ─────┴──> ray-cast ─> wo
                                                                                               └──> ranking ─> chosen_path.csv
 ```
 
-Wall-clock cost on an M1 laptop, for a 30 s @ 30 fps clip:
-
-- YOLO: ~12 s (GPU not available; CPU fallback)
-- VIO: real-time on the phone, free during recording
-- Ray-cast: < 1 s for 900 frames
-- Trajectron++ inference: ~3 s for ~30 trajectory windows
-- Ranking: < 1 s
-
-Total: ~20 s per 30 s clip. Practical for iterating during the thesis.
