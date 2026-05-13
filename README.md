@@ -56,25 +56,11 @@ A UAV that flies near humans needs to predict where people will be, so it can pl
           └──────────────────┘
 ```
 
-A separate **hand-gesture module** (MediaPipe Hands + classifier) runs in parallel and can supply intent priors to the trajectory predictor.
+A separate **hand-gesture module** (MediaPipe Hands + classifier) runs in parallel.
 
 ---
 
-## Status
 
-| Component | Status | Notes |
-|---|---|---|
-| YOLOv8 person detection | done | `experiments/pedestrians/` and `~/Desktop/uav_perception/` |
-| Custom CSV → Trajectron++ `.pkl` converter | done | `experiments/pedestrians/csv_to_trajectron_data.py` |
-| ETH base pre-training (100 epochs) | done | `models_08_Mar_2026_23_53_32_eth_100ep` |
-| UAV fine-tuning (multiple variants v1–v8) | done | latest: `models_10_Mar_2026_00_42_50_uav_ft_v8_persp` |
-| Trajectory ranking (likelihood, KDE, mean-prox, endpoint, history-consistency, risk) | done | `prediction_ranking*.ipynb` |
-| Homography-based ground-truth calibration | done as **proof-of-concept** | `calibration_demo.ipynb` (lives in `uav_perception/`) |
-| **VIO-based ground-truth (ARKit / CamTrackAR)** | in progress | see [`docs/VIO_RESEARCH.md`](docs/VIO_RESEARCH.md) |
-| Hand-gesture module | planned, design done | separate module, MediaPipe Hands → 1D CNN / ST-GCN. Full plan in [`docs/GESTURE_MODULE.md`](docs/GESTURE_MODULE.md) |
-| UAV deployment | future | not in scope of this thesis |
-
-For a detailed breakdown of what was done when and why, see [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ---
 
@@ -90,19 +76,14 @@ For a detailed breakdown of what was done when and why, see [`docs/PROGRESS.md`]
 
 ## Notebooks (read in this order)
 
-The story told by the notebooks goes: *can we predict trajectories?* → *can we get metric ground truth?* → *can we get reliable ground truth, even for a moving camera?* Full narrative in [`docs/NOTEBOOKS_GUIDE.md`](docs/NOTEBOOKS_GUIDE.md).
+The story told by the notebooks goes: *can we predict trajectories?* → *can we get metric ground truth?* → *can we get reliable ground truth, even for a moving camera?* 
 
 | # | Notebook | What it shows |
 |---|---|---|
 | 1 | `notebooks/01_pipeline_results.ipynb` | End-to-end pipeline result with fine-tuned Trajectron++ and six trajectory-ranking methods (predictions in pixel space). |
 | 2 | `notebooks/02_calibration_demo.ipynb` | First attempt at metric ground truth via homography. Three videos, ETH base + v1–v8 fine-tunes compared. Shows what works and what *doesn't* — motivation for VIO. |
-| 3 | `notebooks/03_vio_pilot.ipynb` *(in progress)* | Current attempt: ARKit / VIO based ground truth. Not yet conclusive — first field test pending. |
+| 3 | `notebooks/03_vio_pilot.ipynb` *(in progress)* | Current attempt: ARKit / VIO based ground truth. |
 
-Auxiliary notebooks (analysis, ablations):
-
-- `experiments/pedestrians/prediction_analysis.ipynb` — v6 model evaluation.
-- `experiments/pedestrians/prediction_analysis_v8.ipynb` — v6 vs v8 (perspective-corrected) comparison.
-- `prediction_ranking.ipynb`, `prediction_ranking_uav.ipynb` — ranking-method experiments.
 
 ---
 
@@ -133,7 +114,7 @@ Auxiliary notebooks (analysis, ablations):
 └── README.md                       # this file
 ```
 
-> **Note:** the perception / calibration / VIO scripts currently live in a separate local folder (`~/Desktop/uav_perception/`). They will be merged into this repo under `perception/` before the next milestone — see [`docs/PROGRESS.md`](docs/PROGRESS.md).
+
 
 ---
 
