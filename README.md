@@ -11,7 +11,7 @@ Semester thesis project on predicting human trajectories for UAV safety.
 A UAV that flies near humans needs to predict where people will be, so it can plan a safe path. This project builds an end-to-end pipeline:
 
 1. **Perception** — detect humans in the UAV camera feed
-2. **Ground truth** — convert pixel detections to metric world coordinates (VIO)
+2. **Ground truth** — convert pixel detections to metric world coordinates
 3. **Forecasting** — predict future trajectories (Trajectron++ fine-tuned on collected data)
 4. **Hand-gesture intent** (separate module) — interpret pedestrian intent from hand motion
 5. **Trajectory Planning** 
