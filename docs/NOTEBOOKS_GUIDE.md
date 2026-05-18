@@ -5,14 +5,14 @@ The notebooks should be read in this order, because each one motivated the next:
 
 1. [Pipeline results](#1-pipeline-results) — does our fine-tuned model produce reasonable predictions?
 2. [Calibration demo (homography)](#2-calibration-demo-homography) — first attempt at metric ground truth.
-3. [VIO pilot](#3-vio-pilot-in-progress) — current attempt, motivated by the limitations of #2.
+3. [VIO pilot](#3-vio-pilot-in-progress) — current attempt at ground truth, motivated by the limitations of #2.
+4. [MediaPipe sanity](#4-mediapipe-sanity-phase-1-of-the-gesture-module) — Phase 1 of the separate gesture module.
 
 ---
 
 ## 1. Pipeline results
 
 **File:** `notebooks/01_pipeline_results.ipynb`
-*(source also kept at `experiments/pedestrians/presentation_pipeline_results.ipynb`)*
 
 **Question.** Does Trajectron++, fine-tuned on our own UAV-style footage, produce reasonable trajectory predictions?
 
@@ -72,29 +72,37 @@ The advisor's verdict (early May 2026): not reliable enough as thesis ground tru
 
 ---
 
-## 3. VIO pilot (in progress)
+## 3. VIO pilot
 
-**File:** `notebooks/03_vio_pilot.ipynb` — *not yet committed, results currently being collected.*
+**File:** `notebooks/03_vio_pilot.ipynb`
 
-**Question.** Can we replace homography with Visual-Inertial Odometry (VIO) and recover metric ground truth automatically, even when the camera moves?
+**Question.** Can we replace homography with Visual-Inertial Odometry (VIO) and recover metric ground truth automatically, including for moving cameras?
 
+**Why.** Section 2 (homography) had four structural problems: static camera only, manual annotation, far-field pixel-error blow-up, and requires a known planar region. VIO removes all four.
 
-That removes every objection from Section 2.
+**What's inside.**
 
-**Status (today).**
-- Selected **ARKit on iPhone 11** via the free **CamTrackAR** app as the entry point — same algorithm class as VINS-Mono, deployable today with no extra hardware.
-- In-room sanity check: walked a tape-measured 1.72 m, ARKit reported 1.73 m → **0.6 % error**.
-- Designed the pipeline: keep YOLO and Trajectron++ as-is, replace the homography step with a per-frame ray-cast `pixel → world floor` using the ARKit camera pose. Full theory + validation plan in [`VIO_RESEARCH.md`](VIO_RESEARCH.md).
+1. **Validation: tape-measure walks (1 m / 5 m / 10 m).** Held the phone in hand, walked a measured straight line in CamTrackAR; the VIO-reported camera displacement is compared against the tape measure. Result: sub-percent error at 5 m and 10 m (the 1 m result is dominated by start-of-trace body sway).
+2. **Field clip 1.** Static phone, single person walking close (3–13 m) for 44 s. End-to-end pipeline: YOLOv8 → `pixel_to_world.py` (ray-cast to ARKit floor) → `predict_with_trajectron.py` (sliding-window CVAE on dt=0.4 s). Clean trajectory; Trajectron++ v8 gives ADE 1.16 m / FDE 2.05 m / best-of-20 ADE 0.78 m on a 4.8 s horizon.
+3. **Field clip 2.** Same setup but the person walked further away (22–60 m). Per-frame ray-cast becomes noisy at that range (1 px → tens of cm world error); a 2 s rolling-median filter is required before forecasting. Predictions are correspondingly worse (ADE 3.78 m / FDE 5.79 m), which is the right qualitative answer for this scenario.
 
-**What this notebook *will* contain when it lands.**
+The driver scripts all live in [`vio/`](../vio/README.md): `validate_camera_walk.py`, `run_yolo_foot.py`, `pixel_to_world.py`, `analyze_field.py`, `predict_with_trajectron.py`, `plot_predictions.py`.
 
-1. Load one CamTrackAR clip (`.mp4` + `CameraKeyframes.CSV` + `Anchors.CSV`).
-2. Run YOLOv8 on the video → foot pixels.
-3. For each frame, look up the camera pose from `CameraKeyframes.CSV`, build the camera-frame ray from the foot pixel, rotate to world frame, intersect with `Y = 0`.
-4. Resulting metric trajectory, plot side-by-side with the homography output on the *same* clip.
-5. Quantitative comparison: ADE / FDE of Trajectron++ predictions against the two ground truths.
+**Main result.** VIO is the right ground-truth source for this thesis. The remaining work is engineering: keep subjects within a sensible depth range (or move to multi-view ground truth), add a proper multi-person tracker, and re-evaluate.
 
-Important caveat for readers. This is an experiment, **not a confirmed result**. We do not yet claim that VIO is the final answer — we claim it is the next thing to try, because it removes the structural problems of homography. The notebook will be updated with real numbers.
+---
+
+## 4. MediaPipe sanity (Phase 1 of the gesture module)
+
+**File:** `notebooks/04_mediapipe_sanity.ipynb`
+
+**Question.** Does MediaPipe Hands reliably detect hand landmarks on our existing thesis footage (people walking, distance 2 – 5 m, outdoor lighting)?
+
+**Why now.** Phase 1 of the gesture module (see [`GESTURE_MODULE.md`](GESTURE_MODULE.md)) is just a feasibility check. Before training any classifier, we need to know if the keypoint extractor itself works on our framing. This is one day of work and unblocks the rest of the module.
+
+**What's inside.** Picks one existing video, runs `gesture/mediapipe_overlay.py`, writes an overlay video + a keypoint CSV, then reports detection rate, mean confidence, and a sample frame.
+
+**Output we'll show in the meeting.** Three numbers (detection rate, mean confidence, observed failure modes) and one frame from the overlay video.
 
 ---
 
@@ -104,5 +112,6 @@ Important caveat for readers. This is an experiment, **not a confirmed result**.
 |---|---|---|
 | `01_pipeline_results.ipynb` | Does fine-tuned Trajectron++ work on our data? | Done — yes (pixel-space). |
 | `02_calibration_demo.ipynb` | Can homography give metric ground truth? | Done — partially, but limitations are structural. |
-| `03_vio_pilot.ipynb` | Can VIO give metric ground truth, including for moving cameras? | In progress. |
+| `03_vio_pilot.ipynb` | Can VIO give metric ground truth, including for moving cameras? | Done — yes; validated + two field clips end-to-end. |
+| `04_mediapipe_sanity.ipynb` | Does MediaPipe Hands detect hands on our footage? | Scaffold ready; first run pending. |
 

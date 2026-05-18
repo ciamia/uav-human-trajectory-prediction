@@ -82,7 +82,8 @@ The story told by the notebooks goes: *can we predict trajectories?* → *can we
 |---|---|---|
 | 1 | `notebooks/01_pipeline_results.ipynb` | End-to-end pipeline result with fine-tuned Trajectron++ and six trajectory-ranking methods (predictions in pixel space). |
 | 2 | `notebooks/02_calibration_demo.ipynb` | First attempt at metric ground truth via homography. Three videos, ETH base + v1–v8 fine-tunes compared. Shows what works and what *doesn't* — motivation for VIO. |
-| 3 | `notebooks/03_vio_pilot.ipynb` *(in progress)* | Current attempt: ARKit / VIO based ground truth. |
+| 3 | `notebooks/03_vio_pilot.ipynb` *(in progress)* | Current attempt: ARKit / VIO based ground truth. Scaffold + scripts ready; first field test pending. |
+| 4 | `notebooks/04_mediapipe_sanity.ipynb` *(in progress)* | Gesture module Phase 1: confirms MediaPipe Hands works on our footage. |
 
 
 ---
@@ -101,7 +102,15 @@ The story told by the notebooks goes: *can we predict trajectories?* → *can we
 ├── notebooks/                      # experiment notebooks for advisor / collaborators
 │   ├── 01_pipeline_results.ipynb   # fine-tuned Trajectron++ + ranking (pixel space)
 │   ├── 02_calibration_demo.ipynb   # homography ground-truth attempt (3 videos)
-│   └── 03_vio_pilot.ipynb          # VIO ground-truth attempt (in progress)
+│   ├── 03_vio_pilot.ipynb          # VIO ground-truth attempt (scaffolded, fill in)
+│   └── 04_mediapipe_sanity.ipynb   # MediaPipe Hands sanity check (scaffolded)
+├── vio/                            # VIO scripts: ray-cast + anchor validation
+│   ├── pixel_to_world.py
+│   ├── validate_anchors.py
+│   └── README.md
+├── gesture/                        # hand-gesture module (Phase 1)
+│   ├── mediapipe_overlay.py
+│   └── README.md
 ├── docs/
 │   ├── NOTEBOOKS_GUIDE.md          # short narrative for each notebook (read first)
 │   ├── VIO_RESEARCH.md             # why VIO, theory, validation plan

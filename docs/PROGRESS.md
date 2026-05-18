@@ -4,14 +4,43 @@ Running log of what was done, when, and why. Most recent at the top.
 
 ---
 
+## VIO pilot — three validations + two field clips (May 2026, just before the meeting)
 
-**Done so far:**
+Recorded with the iPhone + CamTrackAR. All artefacts under `data/vio/`, all driver scripts under `vio/`, full notebook walkthrough in [`notebooks/03_vio_pilot.ipynb`](../notebooks/03_vio_pilot.ipynb).
+
+**Validation (tape-measure walks, camera in hand).**
+
+| target | XZ displacement reported by VIO | error |
+| --- | --- | --- |
+| 1 m  | 1.097 m | +9.7 % |
+| 5 m  | 4.963 m | −0.75 % |
+| 10 m | 9.861 m | −1.39 % |
+
+Sub-percent error from 5 m onward → ARKit metric scale is good enough for our walking-distance ground truth. The 1 m result is biased by start-of-trace body sway (the walked distance and the sway have similar magnitudes).
+
+**Field clip 1 (`data/vio/field_001/`)** — phone on a table, single person walks for 44 s within 3–13 m. YOLOv8s detected the person in 83.6 % of frames; ray-cast to the ARKit floor plane gave a clean trajectory. Trajectron++ v8 fine-tune (ckpt 45) on the resampled track:
+
+- ADE (mean of samples) 1.16 m, FDE 2.05 m, best-of-20 ADE 0.78 m on a 4.8 s horizon.
+
+**Field clip 2 (`data/vio/field_002/`)** — same setup, person walked further (22–60 m). Per-frame ray-cast became noisy at that range (1 px YOLO error → tens of cm world error because the rays are nearly parallel to the floor). After a 2 s rolling-median filter the trajectory looks physical (≈ 2.45 m/s, brisk walk). Trajectron++ predictions are correspondingly worse:
+
+- ADE 3.78 m, FDE 5.79 m, best-of-20 ADE 2.99 m.
+
+**Conclusions for the meeting.**
+
+1. VIO replaces homography as the metric ground-truth source; no per-scene calibration required.
+2. The model works end-to-end on VIO outputs without retraining.
+3. The next data-collection pass needs the person to stay closer to the camera (or move to multi-view ground truth) to avoid the long-range ray-cast amplification.
+
+---
+
+## VIO research + module split (planning, mid-May 2026)
 
 - Read into VIO theory (VINS-Mono, OKVIS, ORB-SLAM3). Summary in [`VIO_RESEARCH.md`](VIO_RESEARCH.md).
 - Decided to use **ARKit on iPhone 11** for now via the free **CamTrackAR** app. Reasons: zero hardware cost, IMU + camera already present, exports per-frame pose CSV.
 - Installed CamTrackAR, recorded a small in-room validation clip.
-- Validation result: walked a tape-measured **1.72 m** → ARKit reported **1.73 m** along the Z-axis → ~0.6 % error. Lateral (X) deviation ~60 cm explained by handheld body sway; vertical drift sub-cm.
-- Designed the new pipeline: keep YOLO and Trajectron++ as-is, replace homography with a `pixel_to_world_floor()` ray-cast that uses the per-frame ARKit pose untill the next meeting.
+- First-look validation: walked a tape-measured **1.72 m** → ARKit reported **1.73 m** along the Z-axis → ~0.6 % error. Lateral (X) deviation ~60 cm explained by handheld body sway; vertical drift sub-cm.
+- Designed the new pipeline: keep YOLO and Trajectron++ as-is, replace homography with a `pixel_to_world_floor()` ray-cast that uses the per-frame ARKit pose until the next meeting.
 - Decided that **hand tracking and trajectory forecasting** will live in two **independent modules**.
 
 
