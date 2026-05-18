@@ -61,20 +61,29 @@ def summarise(df: pd.DataFrame, smoothed_window: int = 31) -> dict:
     }
 
 
+def _trim_for_display(df: pd.DataFrame, q_low: float = 0.01, q_high: float = 0.99) -> pd.DataFrame:
+    """Trim extreme outliers for cleaner visualization only."""
+    x0, x1 = df["world_x"].quantile(q_low), df["world_x"].quantile(q_high)
+    z0, z1 = df["world_z"].quantile(q_low), df["world_z"].quantile(q_high)
+    return df[(df["world_x"].between(x0, x1)) & (df["world_z"].between(z0, z1))].copy()
+
+
 def plot(df: pd.DataFrame, summary: dict, output: Path, title: str,
-         smoothed_window: int = 31) -> None:
+         smoothed_window: int = 31, show_raw: bool = True) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     df_s = smooth(df, window=smoothed_window)
+    df_raw_viz = _trim_for_display(df) if show_raw else df
 
-    fig, ax = plt.subplots(figsize=(9, 8))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
-    ax.scatter(df["world_x"], df["world_z"], c="lightgray", s=6, alpha=0.5,
-               label=f"raw foot ray-cast ({len(df)} pts)")
+    if show_raw:
+        ax.scatter(df_raw_viz["world_x"], df_raw_viz["world_z"], c="#b0b0b0", s=5, alpha=0.35,
+                   label=f"raw detections ({len(df_raw_viz)}/{len(df)} shown)")
 
     sc = ax.scatter(df_s["world_x"], df_s["world_z"], c=df_s["time_seconds"],
-                    s=10, cmap="viridis", zorder=3,
+                    s=12, cmap="viridis", zorder=3,
                     label=f"smoothed (median, {smoothed_window} fr)")
-    ax.plot(df_s["world_x"], df_s["world_z"], "-", color="gray", alpha=0.3, linewidth=1)
+    ax.plot(df_s["world_x"], df_s["world_z"], "-", color="#3a3a3a", alpha=0.55, linewidth=1.4)
 
     ax.scatter([summary["cam_pos_x_mean"]], [summary["cam_pos_z_mean"]],
                marker="^", s=200, color="red", edgecolor="black", zorder=5,
@@ -89,7 +98,7 @@ def plot(df: pd.DataFrame, summary: dict, output: Path, title: str,
     ax.set_ylabel("world Z (m)")
     ax.set_title(title)
     ax.set_aspect("equal")
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.25, linestyle="--")
     ax.legend(loc="best", fontsize=9)
 
     cbar = plt.colorbar(sc, ax=ax)
@@ -105,10 +114,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--trajectory", required=True, type=Path)
     p.add_argument("--output", required=True, type=Path, help="PNG output")
     p.add_argument("--title", default=None)
+    p.add_argument("--smoothing-frames", type=int, default=31)
+    p.add_argument("--hide-raw", action="store_true")
     args = p.parse_args(argv)
 
     df = pd.read_csv(args.trajectory)
-    summary = summarise(df)
+    summary = summarise(df, smoothed_window=args.smoothing_frames)
 
     print(f"=== {args.trajectory} ===")
     print(f"  detections:       {summary['n_frames']}")
@@ -123,7 +134,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  camera motion:    X std {summary['cam_pos_x_std']:.4f} m, Z std {summary['cam_pos_z_std']:.4f} m (low => static)")
 
     title = args.title or f"World-frame foot trajectory ({args.trajectory.parent.name})"
-    plot(df, summary, args.output, title)
+    plot(
+        df,
+        summary,
+        args.output,
+        title,
+        smoothed_window=args.smoothing_frames,
+        show_raw=not args.hide_raw,
+    )
     print(f"  plot written to:  {args.output}")
     return 0
 

@@ -30,19 +30,28 @@ more files; see the implementation plan in `docs/GESTURE_MODULE.md`.
 
 ---
 
-## Phase 1: sanity check on existing thesis footage
+## Phase 1: distance-stratified sanity (1 / 2 / 3 / 4 m)
+
+Four controlled clips were captured under `~/Desktop/uav_perception/media_hands/`
+(`1meters.MOV`, `2meters.MOV`, `3meters.MOV`, `4meters.MOV`), all with the same
+phone in the same room and a single person making hand gestures at each
+distance.
+
+Run MediaPipe Hands on each clip:
 
 ```bash
-python -m gesture.mediapipe_overlay \
-    --video        /Users/simayyalcin/Desktop/uav_perception/raw_videos/01.mp4 \
-    --output-prefix data/gesture/01
+for d in 1 2 3 4; do
+  python -m gesture.mediapipe_overlay \
+    --video  ~/Desktop/uav_perception/media_hands/${d}meters.MOV \
+    --output-prefix data/gesture/${d}m \
+    --max-hands 2 --detection-confidence 0.5 --tracking-confidence 0.5
+done
 ```
 
-This produces:
+This produces, for each distance `d`:
 
-* `data/gesture/01_overlay.mp4` — your input video with hand landmarks
-  drawn on every frame, ready to share.
-* `data/gesture/01_keypoints.csv` — one row per detected hand per frame,
+* `data/gesture/${d}m_overlay.mp4` — input video with hand skeletons drawn.
+* `data/gesture/${d}m_keypoints.csv` — one row per detected hand per frame,
   with 21 × 3 landmark coordinates (normalised image coordinates ∈ [0, 1]
   for x and y, scale-free for z).
 
@@ -50,29 +59,30 @@ CSV columns:
 
 ```
 frame, time_seconds, hand_index, handedness, score,
-kp0_x, kp0_y, kp0_z,
-kp1_x, kp1_y, kp1_z,
-...
-kp20_x, kp20_y, kp20_z
+kp0_x, kp0_y, kp0_z, kp1_x, kp1_y, kp1_z, ..., kp20_x, kp20_y, kp20_z
 ```
 
 `hand_index` is 0 for the first hand detected in the frame, 1 for the
-second. `handedness` is `"Left"` or `"Right"` (in camera frame, not
-mirrored).
+second. `handedness` is `"Left"` or `"Right"` (in camera frame, not mirrored).
 
-See `notebooks/04_mediapipe_sanity.ipynb` for plots and summary.
+### Measured behaviour (`notebooks/04_mediapipe_sanity.ipynb`)
 
----
+| distance | detection rate | mean score | median hand span (% of frame) |
+|---:|---:|---:|---:|
+| 1 m | 76.3 % | 0.962 | 34.5 % |
+| 2 m | 79.0 % | 0.959 | 13.2 % |
+| 3 m | 56.2 % | 0.931 |  8.4 % |
+| 4 m | 31.0 % | 0.912 |  5.4 % |
 
-## What this tells us
+**Hand span tracks the expected `~ 1/d` law** (constant hand size, constant
+camera) and **detection rate halves between 2 m and 4 m**. The classifier
+working range is therefore ≤ 2–3 m at this lens / resolution; beyond that
+the input keypoints become spatially aliased and finger geometry is no
+longer recoverable.
 
-* **Detection rate** — fraction of frames with at least one hand detected.
-  For a UAV-style clip (subject 2 – 5 m away, walking), expect 40 – 80 %.
-* **Confidence distribution** — if mean score is below ~0.5, the framing
-  is too far / too small for MediaPipe.
-* **Failure modes** — the overlay video makes failure cases visually
-  obvious (subject too far, hand occluded, blurred during motion).
+These numbers determine the Phase-2 setup:
 
-These three numbers decide whether Phase 2 needs custom data collection
-(close-up) or whether the existing 26 thesis videos are usable for
-fine-tuning.
+* Train at 1–2 m where keypoints are reliable.
+* Add a crop-then-classify head so the downstream model always sees a
+  resolution-normalised hand patch, independent of subject distance.
+* Use the 3 m clips as a held-out stress test; deprioritise 4 m for now.

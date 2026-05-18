@@ -58,17 +58,25 @@ def quat_to_rotmat(qx: float, qy: float, qz: float, qw: float) -> np.ndarray:
     ])
 
 
-def intrinsics_from_fov(fov_deg: float, w: int, h: int) -> tuple[float, float, float, float]:
-    """Build pinhole intrinsics (fx, fy, cx, cy) from a horizontal FOV in degrees.
+def intrinsics_from_fov(fov: float, w: int, h: int, fov_unit: str = "radians") -> tuple[float, float, float, float]:
+    """Build pinhole intrinsics (fx, fy, cx, cy) from a horizontal FOV.
 
-    Assumes square pixels and that the principal point is at the image centre.
+    `fov_unit` is either "radians" (CamTrackAR's CSV) or "degrees" (user override).
     """
-    fov_rad = math.radians(fov_deg)
+    fov_rad = fov if fov_unit == "radians" else math.radians(fov)
     fx = (w / 2.0) / math.tan(fov_rad / 2.0)
     fy = fx
     cx = w / 2.0
     cy = h / 2.0
     return fx, fy, cx, cy
+
+
+def intrinsics_from_lens_zoom(lens_zoom_px: float, w: int, h: int) -> tuple[float, float, float, float]:
+    """CamTrackAR's `LensZoom` is the focal length in pixels for this video resolution.
+
+    This is the most direct source of intrinsics — no FOV unit ambiguity.
+    """
+    return float(lens_zoom_px), float(lens_zoom_px), w / 2.0, h / 2.0
 
 
 def pixel_to_world_floor(
@@ -127,12 +135,12 @@ def load_camera_keyframes(csv_path: Path) -> pd.DataFrame:
 def interpolate_pose(
     time_seconds: float,
     cam_df: pd.DataFrame,
-) -> tuple[np.ndarray, np.ndarray, float]:
-    """Return (camera position, rotation matrix, FOV) at the given time.
+) -> tuple[np.ndarray, np.ndarray, float, float | None]:
+    """Return (camera position, rotation matrix, FOV [rad], LensZoom [px]) at the given time.
 
     Position is linearly interpolated between the two surrounding keyframes;
     rotation is taken from the nearest keyframe (good enough at 60+ Hz).
-    FOV is taken from the nearest keyframe.
+    FOV and LensZoom are taken from the nearest keyframe.
     """
     t_arr = cam_df["TimeSeconds"].values
     idx = np.searchsorted(t_arr, time_seconds)
@@ -161,8 +169,9 @@ def interpolate_pose(
     # Use the nearest keyframe for rotation and FOV.
     nearest = cam_df.iloc[upper]
     R = quat_to_rotmat(nearest.QuatX, nearest.QuatY, nearest.QuatZ, nearest.QuatW)
-    fov = float(nearest.FOV) if "FOV" in cam_df.columns else 60.0
-    return cam_pos, R, fov
+    fov_rad = float(nearest.FOV) if "FOV" in cam_df.columns else math.radians(60.0)
+    lens_zoom = float(nearest.LensZoom) if "LensZoom" in cam_df.columns else None
+    return cam_pos, R, fov_rad, lens_zoom
 
 
 # --------------------------------------------------------------------------- #
@@ -194,9 +203,16 @@ def run(
     rows = []
     skipped = 0
     for _, row in px_df.iterrows():
-        cam_pos, R, fov = interpolate_pose(float(row.time_seconds), cam_df)
-        fov_to_use = fov_override if fov_override is not None else fov
-        fx, fy, cx, cy = intrinsics_from_fov(fov_to_use, video_width, video_height)
+        cam_pos, R, fov_rad, lens_zoom = interpolate_pose(float(row.time_seconds), cam_df)
+        if fov_override is not None:
+            # User passed an FOV in degrees on the CLI.
+            fx, fy, cx, cy = intrinsics_from_fov(fov_override, video_width, video_height, fov_unit="degrees")
+        elif lens_zoom is not None:
+            # Prefer LensZoom (already in pixels) — no FOV unit ambiguity.
+            fx, fy, cx, cy = intrinsics_from_lens_zoom(lens_zoom, video_width, video_height)
+        else:
+            # Fall back to FOV column (radians).
+            fx, fy, cx, cy = intrinsics_from_fov(fov_rad, video_width, video_height, fov_unit="radians")
 
         p = pixel_to_world_floor(
             (float(row.u), float(row.v)),
