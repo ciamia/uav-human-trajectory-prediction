@@ -1,0 +1,38 @@
+mass:               0.027               # [kg]
+tbm_fr:             [ 0.028, -0.028, 0.0]     # [m]
+tbm_bl:             [-0.028,  0.028, 0.0]     # [m]
+tbm_br:             [-0.028, -0.028, 0.0]     # [m]
+tbm_fl:             [ 0.028,  0.028, 0.0]     # [m]
+inertia:            [1.4e-5, 1.4e-5, 2.17e-5] # [kgm^2]
+motor_omega_min:    0.0                       # [rad/s]
+motor_omega_max:    2273.855                  # [rad/s]
+motor_tau:          0.033                     # [s]
+omega_max:          [10.0, 10.0, 4.0]         # [rad/s]
+
+thrust_map:         [2.881574e-8, 0.0,  0.0]
+kappa:              0.0251266                 # [Nm/N]
+thrust_min:         0.0                       # [N]
+thrust_max:         0.148989                  # [N] per motor
+rotors_config:      "cross"
+
+aero_coeff_1:       [0.0, 0.0, 0.0] # [0.26, 0.28, 0.42] # [N/(v/m)]
+aero_coeff_3:       [0.0, 0.0, 0.0] # [N/(v/m)]
+aero_coeff_h:        0.0            # 0.01 [N/(v^2/m^2)]
+
+arm_length:         0.0397
+k_force:            3.16e-10        # thrust coefficient, maps motor spin/thrust command to force
+k_torque:           7.94e-12        # moment coefficient, maps motor spin/thrust command to reaction torque.
+
+# initial state
+position:           [0, 0, 0.5]
+quaternion:         [1, 0, 0, 0]
+velocity:           [0, 0, 0]
+omega:              [0, 0, 0]
+
+cuav:               0                       # if cuav
+load_mass:          0.227                      # [kg]
+cable_length:       0.81                       # [m]
+cable_tole:         0.01                      # [m]
+initial_position:   [0.5, 0.5, 0]             # [m]
+offset_vector:      [0.06, 0.06, -0.02]           # [m]
+offset: 0  # if consider offset

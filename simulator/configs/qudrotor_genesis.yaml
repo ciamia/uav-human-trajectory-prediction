@@ -1,0 +1,26 @@
+
+# dimensions
+mass: 1.0
+inertia: [[0.02, 0.0, 0.0],
+          [0.0,  0.02, 0.0],
+          [0.0, 0.0, 0.02]]
+gravity: 9.81
+thrust_min: 0.0
+thrust_max: 8.5
+thrust_max_scale: 8.5
+torque_limit: 0.25
+tilt_max:      0.45
+
+# actuator limits
+rotor_cmd_min: 0.0
+rotor_cmd_max: 1.0
+body_z_acc_min: -5.0
+body_z_acc_max: 5.0
+ang_acc_min: -10.0
+ang_acc_max: 10.0
+
+
+
+velocity_abs_max: 5.0
+omega_abs_max:    10.0
+

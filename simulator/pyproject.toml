@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drone-flow-matching"
+version = "0.1.0"
+description = "Simulation-only drone trajectory planning with Conditional Flow Matching."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "casadi",
+    "genesis-world",
+    "matplotlib",
+    "numpy",
+    "pyyaml",
+    "scipy",
+    "torch",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+genesis = ["genesis-world"]
+
+[tool.setuptools.packages.find]
+include = ["control*", "drone_cfm*", "data*", "env*", "flow*", "models*", "planning*", "safety*", "simulation*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

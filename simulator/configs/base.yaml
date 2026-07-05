@@ -1,0 +1,51 @@
+seed: 7
+device: auto
+
+simulation:
+  backend: synthetic
+  genesis:
+    backend: cpu
+    dt: 0.02
+    show_viewer: false
+    add_plane: true
+
+dataset:
+  num_samples: 2048
+  horizon: 32
+  num_obstacles: 6
+  world_min: [-5.0, -5.0, 0.0]
+  world_max: [5.0, 5.0, 5.0]
+  obstacle_radius_range: [0.35, 0.9]
+  obstacle_clearance: 0.35
+  min_start_goal_distance: 2.0
+  max_speed: 1.5
+  seed: 8
+
+model:
+  state_dim: 6
+  obstacle_dim: 4
+  hidden_dim: 128
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+  max_horizon: 256
+
+training:
+  output_dir: outputs
+  epochs: 20
+  batch_size: 64
+  num_workers: 0
+  lr: 0.0003
+  weight_decay: 0.000001
+  grad_clip: 1.0
+  checkpoint_every: 5
+  log_every: 10
+
+sampling:
+  num_samples: 8
+  steps: 50
+  method: heun
+  projection_margin: 0.35
+  projection_iterations: 6
+  output_dir: outputs/samples
+  seed: 1007

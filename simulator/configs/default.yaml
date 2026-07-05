@@ -1,0 +1,35 @@
+seed: 7
+device: auto
+
+environment:
+  world_min: [-5.0, -5.0, 0.0]
+  world_max: [5.0, 5.0, 5.0]
+  num_obstacles: 6
+  obstacle_radius_range: [0.45, 1.0]
+  obstacle_margin: 0.35
+
+dataset:
+  num_samples: 2048
+  horizon: 32
+  batch_size: 64
+  detour_probability: 0.75
+  noise_std: 0.05
+
+model:
+  state_dim: 6
+  hidden_dim: 128
+  num_layers: 3
+  num_heads: 4
+  dropout: 0.1
+
+training:
+  epochs: 20
+  lr: 0.0003
+  weight_decay: 0.000001
+  grad_clip: 1.0
+  output_dir: outputs
+
+sampling:
+  num_trajectories: 8
+  steps: 50
+  method: heun

@@ -1,0 +1,10 @@
+position_gain: [1.2, 1.2, 8.0]
+velocity_gain: [1.8, 1.8, 4.0]
+attitude_gain: [0.2, 0.2, 0.2]
+omega_gain:    [0.08, 0.08, 0.08]
+control_gain: 0.001
+
+thrust_max_scale: 6.5
+torque_limit: 0.5
+max_tilt: 0.45
+

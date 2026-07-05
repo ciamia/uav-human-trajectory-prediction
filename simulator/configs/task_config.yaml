@@ -1,0 +1,11 @@
+num_drones: 1
+is_swingload: false
+which_controller: mpc
+
+drone: configs/cf2x.yaml
+# task: configs/trajectory_tracking.yaml
+which_task: go_to_point
+task: configs/go_to_point.yaml
+
+mpc: configs/mpc.yaml
+pid:  configs/pid.yaml

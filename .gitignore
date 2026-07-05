@@ -446,3 +446,62 @@ results/
 *-Copy*.ipynb
 *_executed.ipynb
 
+
+# for the simulator 
+# Editor / IDE
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+**/c_generated_code/
+**/*_acados_ocp.json
+
+# Virtual environments
+.venv/
+venv/
+.env/
+
+# Build / compiled files
+build/
+dist/
+*.egg-info/
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+
+# Training / evaluation outputs
+outputs/*
+!outputs/serving_fm/
+outputs/serving_fm/*
+!outputs/serving_fm/checkpoints/
+outputs/serving_fm/checkpoints/*
+!outputs/serving_fm/checkpoints/best.pt
+
+runs/
+wandb/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+
+# Keep required serving checkpoint
+!outputs/serving_fm/checkpoints/best.pt
+
+# Logs
+*.log
+*.jsonl
+
+# OS files
+.DS_Store
+Thumbs.db
+EOF
+

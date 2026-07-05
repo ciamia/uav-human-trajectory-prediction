@@ -1,0 +1,9 @@
+  
+  task_id: 1
+  target_position: [0.0, 0.0, 1.0]
+  target_euler:    [0.0, 0.0, 0.1]
+  position_tolerance: 0.05
+  velocity_tolerance: 0.05
+  yaw_tolerance: 0.08
+
+  speed_max: 2

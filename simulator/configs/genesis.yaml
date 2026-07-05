@@ -1,0 +1,70 @@
+seed: 7
+device: auto
+
+sim:
+  backend: genesis
+  dt: 0.02
+  horizon: 64
+  world_size: [30, 30, 20]
+  obstacle_count: 10
+  obstacle_radius_range: [0.2, 0.8]
+  drone_radius: 0.15
+  render: true
+
+simulation:
+  backend: genesis
+  genesis:
+    backend: cpu
+    dt: 0.02
+    show_viewer: true
+    add_plane: true
+
+dataset:
+  num_samples: 2048
+  horizon: 64
+  num_obstacles: 10
+  world_min: [-15.0, -15.0, 0.0]
+  world_max: [15.0, 15.0, 20.0]
+  obstacle_radius_range: [0.2, 0.8]
+  obstacle_clearance: 0.35
+  min_start_goal_distance: 2.0
+  max_speed: 3.0
+  seed: 8
+
+model:
+  state_dim: 6
+  obstacle_dim: 4
+  hidden_dim: 128
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+  max_horizon: 256
+
+training:
+  output_dir: outputs
+  checkpoint_dir: checkpoints
+  epochs: 20
+  batch_size: 64
+  num_workers: 0
+  lr: 0.0003
+  weight_decay: 0.000001
+  grad_clip: 1.0
+  checkpoint_every: 5
+  log_every: 10
+  validate_collision_every: 5
+  validation_batches: 1
+  validation_batch_size: 16
+
+sampling:
+  num_samples: 8
+  steps: 50
+  method: heun
+  projection_margin: 0.35
+  projection_iterations: 6
+  output_dir: outputs/samples
+  seed: 1007
+
+planning:
+  safety_margin: 0.25
+  max_velocity: 3.0
+  max_acceleration: 5.0
